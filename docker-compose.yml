@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # Database Service
   mongo:
     image: mongo:latest
     container_name: hostelconnect-mongo
@@ -8,6 +7,41 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - nexus-network
+
+  # Backend Service
+  backend:
+    build: ./backend
+    container_name: hostelconnect-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hostelconnect
+      - JWT_SECRET=supersecretnexuskey123
+    depends_on:
+      - mongo
+    networks:
+      - nexus-network
+
+  # Frontend Service
+  frontend:
+    build: 
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:5000/api
+        - VITE_SOCKET_URL=http://localhost:5000
+    container_name: hostelconnect-frontend
+    ports:
+      - "5173:80"  # Mapping internal Nginx 80 to standard dev port 5173
+    depends_on:
+      - backend
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    driver: bridge
 
 volumes:
   mongo-data:

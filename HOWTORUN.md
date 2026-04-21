@@ -15,36 +15,24 @@ Ensure you have the following installed:
 
 ## 🏃 Quick Start Guide
 
-### 1. Start the Database
-The application uses MongoDB via Docker to ensure a clean environment.
+### Start the Entire Platform
+The application is fully containerized. You can start the database, backend, and frontend with a single command:
 ```powershell
-docker compose up -d
+docker compose up --build
 ```
 
-### 2. Start the Backend API
-Navigate to the `backend` directory and start the server.
-```powershell
-cd backend
-npm install   # If running for the first time
-npm start
-```
-*The API will be available at: `http://localhost:5000`*
-
-### 3. Start the Frontend UI
-Navigate to the `frontend` directory and start the development server.
-```powershell
-cd frontend
-npm install   # If running for the first time
-npm run dev
-```
-*The Dashboard will be available at: `http://localhost:5173`*
+### Accessing the Platform
+- **Frontend Dashboard**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:5000/api](http://localhost:5000/api)
+- **Database (MongoDB)**: `mongodb://localhost:27017`
 
 ---
 
 ## 🧭 Navigation & Testing
 - **Landing/Login**: [http://localhost:5173/login](http://localhost:5173/login)
 - **Register**: Create a new account to test profile settings.
-- **Dashboard**: View your student profile and (upcoming) community features.
+- **Global Chat**: Connect in real-time with other residents via WebSockets.
+- **Complaint System**: Lodge and track maintenance requests.
 
 ---
 

@@ -1,9 +1,10 @@
 import React, { useContext, useState } from 'react';
-import { Home, LogOut, MessageSquare, AlertCircle, User as UserIcon } from 'lucide-react';
+import { Home, LogOut, MessageSquare, MessageCircle, AlertCircle, User as UserIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from './context/AuthContext';
 import CommunityFeed from './components/CommunityFeed';
 import ComplaintSystem from './components/ComplaintSystem';
+import ChatSystem from './components/ChatSystem';
 import './index.css';
 
 export default function Dashboard() {
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const navItems = [
     { id: 'profile', label: 'My Profile', icon: <UserIcon size={20} /> },
     { id: 'community', label: 'Community Hub', icon: <MessageSquare size={20} /> },
+    { id: 'chat', label: 'Global Chat', icon: <MessageCircle size={20} /> },
     { id: 'complaints', label: 'Complaints', icon: <AlertCircle size={20} /> },
   ];
 
@@ -54,6 +56,8 @@ export default function Dashboard() {
         );
       case 'community':
         return <CommunityFeed />;
+      case 'chat':
+        return <ChatSystem />;
       case 'complaints':
         return <ComplaintSystem />;
       default:
@@ -123,14 +127,15 @@ export default function Dashboard() {
 
         {/* Main Content Area */}
         <div style={{ flex: 1 }}>
-          <div className="glass-card fade-in" style={{ padding: '2rem', minHeight: '80vh' }}>
-            <div style={{ marginBottom: '2rem' }}>
+          <div className="glass-card fade-in" style={{ padding: '2rem', minHeight: '85vh', display: 'flex', flexDirection: 'column', maxWidth: '100%' }}>
+            <div style={{ marginBottom: '2rem', flexShrink: 0 }}>
               <h2 style={{ color: '#fff', fontSize: '1.8rem' }}>
                 {navItems.find(i => i.id === activeTab)?.label}
               </h2>
               <p style={{ color: 'rgba(255,255,255,0.5)' }}>
                 {activeTab === 'profile' ? `Welcome back, ${user?.name}!` : 
                  activeTab === 'community' ? 'Connect anonymously with your fellow residents.' : 
+                 activeTab === 'chat' ? 'Real-time global chat with everyone in the hostel.' :
                  'Lodge and track maintenance requests.'}
               </p>
             </div>
