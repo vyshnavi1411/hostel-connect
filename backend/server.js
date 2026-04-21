@@ -25,16 +25,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'API is running' });
 });
 
-// Basic Login Route
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  // TODO: Replace with real user lookup and bcrypt validation
-  if (email && password) {
-    res.json({ token: 'dummy_jwt_token', user: { id: 1, email } });
-  } else {
-    res.status(400).json({ message: 'Email and password are required' });
-  }
-});
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/posts', require('./routes/posts'));
+app.use('/api/complaints', require('./routes/complaints'));
 
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hostelconnect';
