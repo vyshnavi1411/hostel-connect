@@ -89,27 +89,52 @@ export default function ComplaintSystem() {
 
       {showForm && (
         <div className="glass-card fade-in" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem', color: '#fff' }}>New Maintenance Request</h3>
+          <h3 style={{ marginBottom: '1.5rem', color: '#fff', fontSize: '1.4rem' }}>New Maintenance Request</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>Title</label>
-                <input name="title" className="login-input" placeholder="Short summary" value={formData.title} onChange={handleInputChange} required />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '500' }}>Title</label>
+                <input 
+                  name="title" 
+                  placeholder="Short summary" 
+                  value={formData.title} 
+                  onChange={handleInputChange} 
+                  required 
+                  style={{ width: '100%', padding: '14px 16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s' }}
+                  onFocus={(e) => e.target.style.borderColor = '#6d28d9'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                />
               </div>
-              <div>
-                <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>Category</label>
-                <select name="category" className="login-input" value={formData.category} onChange={handleInputChange} style={{ color: '#fff' }}>
-                  {categories.map(c => <option key={c} value={c} style={{background: '#222'}}>{c}</option>)}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '500' }}>Category</label>
+                <select 
+                  name="category" 
+                  value={formData.category} 
+                  onChange={handleInputChange} 
+                  style={{ width: '100%', padding: '14px 16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.95rem', outline: 'none', appearance: 'none', cursor: 'pointer', transition: 'border-color 0.3s' }}
+                  onFocus={(e) => e.target.style.borderColor = '#6d28d9'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                >
+                  {categories.map(c => <option key={c} value={c} style={{background: '#1e293b', color: 'white'}}>{c}</option>)}
                 </select>
               </div>
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>Detailed Description</label>
-              <textarea name="description" className="login-input" placeholder="Explain the issue..." value={formData.description} onChange={handleInputChange} required style={{ minHeight: '80px' }} />
+            <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '500' }}>Detailed Description</label>
+              <textarea 
+                name="description" 
+                placeholder="Explain the issue..." 
+                value={formData.description} 
+                onChange={handleInputChange} 
+                required 
+                style={{ width: '100%', padding: '14px 16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.95rem', outline: 'none', minHeight: '120px', resize: 'vertical', transition: 'border-color 0.3s', fontFamily: 'inherit' }}
+                onFocus={(e) => e.target.style.borderColor = '#6d28d9'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button type="submit" className="login-btn" style={{ margin: 0 }}>Submit Request</button>
-              <button type="button" onClick={() => setShowForm(false)} className="login-btn" style={{ margin: 0, background: 'rgba(255,255,255,0.1)', color: '#fff' }}>Cancel</button>
+              <button type="submit" className="login-btn" style={{ margin: 0, padding: '12px 24px' }}>Submit Request</button>
+              <button type="button" onClick={() => setShowForm(false)} className="login-btn" style={{ margin: 0, padding: '12px 24px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', boxShadow: 'none' }}>Cancel</button>
             </div>
           </form>
         </div>

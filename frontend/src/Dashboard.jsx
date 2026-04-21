@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { Home, LogOut, MessageSquare, MessageCircle, AlertCircle, User as UserIcon } from 'lucide-react';
+import { Home, LogOut, MessageSquare, MessageCircle, AlertCircle, User as UserIcon, Shield, Mail, MapPin, Hash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from './context/AuthContext';
 import CommunityFeed from './components/CommunityFeed';
@@ -27,30 +27,88 @@ export default function Dashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':
+        // Generate initials for avatar
+        const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
+        
         return (
-          <div className="fade-in" style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ marginBottom: '1.5rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>Personal Information</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-              <div>
-                <label style={{color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', display: 'block', marginBottom: '4px'}}>Full Name</label>
-                <p style={{color: '#fff', fontWeight: '500'}}>{user?.name}</p>
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Profile Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'linear-gradient(90deg, #667eea, #764ba2)' }} />
+              
+              <div style={{ 
+                width: '100px', 
+                height: '100px', 
+                borderRadius: '50%', 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontSize: '2.5rem', 
+                fontWeight: '700', 
+                color: 'white', 
+                boxShadow: '0 10px 25px rgba(118, 75, 162, 0.4)',
+                flexShrink: 0
+              }}>
+                {initials}
               </div>
+              
               <div>
-                <label style={{color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', display: 'block', marginBottom: '4px'}}>Email Address</label>
-                <p style={{color: '#fff', fontWeight: '500'}}>{user?.email}</p>
+                <h2 style={{ color: '#fff', fontSize: '2rem', marginBottom: '8px', letterSpacing: '-0.5px' }}>{user?.name}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(102, 126, 234, 0.1)', color: '#667eea', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <Shield size={14} /> {user?.role || 'student'}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Mail size={16} /> {user?.email}
+                  </span>
+                </div>
               </div>
-              <div>
-                <label style={{color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', display: 'block', marginBottom: '4px'}}>Hostel Role</label>
-                <p style={{color: '#fff', fontWeight: '500', textTransform: 'capitalize'}}>{user?.role || 'student'}</p>
+            </div>
+
+            {/* Profile Details Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              
+              {/* Account Information */}
+              <div style={{ padding: '1.5rem', background: 'rgba(0,0,0,0.15)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h3 style={{ marginBottom: '1.5rem', color: '#fff', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <UserIcon size={18} color="#764ba2" /> Account Details
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Full Name</label>
+                    <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.name}</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address</label>
+                    <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.email}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label style={{color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', display: 'block', marginBottom: '4px'}}>Hostel Block</label>
-                <p style={{color: '#fff', fontWeight: '500'}}>{user?.hostelBlock || 'N/A'}</p>
+
+              {/* Hostel Information */}
+              <div style={{ padding: '1.5rem', background: 'rgba(0,0,0,0.15)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h3 style={{ marginBottom: '1.5rem', color: '#fff', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Home size={18} color="#667eea" /> Hostel Allocation
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hostel Block</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MapPin size={18} color="rgba(255,255,255,0.5)" />
+                      <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.hostelBlock || 'Not Assigned'}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Room Number</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Hash size={18} color="rgba(255,255,255,0.5)" />
+                      <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.roomNumber || 'Not Assigned'}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label style={{color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', display: 'block', marginBottom: '4px'}}>Room Number</label>
-                <p style={{color: '#fff', fontWeight: '500'}}>{user?.roomNumber || 'N/A'}</p>
-              </div>
+
             </div>
           </div>
         );

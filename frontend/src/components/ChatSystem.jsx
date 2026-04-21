@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Send, Clock } from 'lucide-react';
+import { Send, Clock, MessageSquare, Users } from 'lucide-react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
@@ -9,7 +9,7 @@ export default function ChatSystem() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState(null);
-  const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
@@ -43,8 +43,14 @@ export default function ChatSystem() {
   }, [socket]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll container to bottom when messages change
+    if (containerRef.current) {
+      // Use smooth scrolling if supported, otherwise fallback to instant
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages]);
 
   const handleSendMessage = (e) => {
@@ -68,7 +74,26 @@ export default function ChatSystem() {
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(0,0,0,0.15)', borderRadius: '16px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.1)' }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(118, 75, 162, 0.4)' }}>
+            <MessageSquare size={24} color="white" />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, color: 'white', fontSize: '1.5rem', fontWeight: '600', letterSpacing: '-0.5px' }}>Global Chat</h2>
+            <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#50fa7b', display: 'inline-block', boxShadow: '0 0 10px #50fa7b' }}></span>
+              Live Community Chat
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <Users size={16} color="rgba(255,255,255,0.7)" />
+          <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', fontWeight: '500' }}>Everyone</span>
+        </div>
+      </div>
+      
+      <div ref={containerRef} style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(0,0,0,0.15)', borderRadius: '16px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.1)' }}>
         {messages.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', marginTop: '2rem' }}>
             No messages yet. Start the conversation!
@@ -116,7 +141,6 @@ export default function ChatSystem() {
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '12px' }}>
