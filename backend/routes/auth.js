@@ -11,14 +11,14 @@ router.post('/seed', async (req, res) => {
     if (existingUser) {
       return res.json({ message: 'Test user already exists. Email: test@example.com, password: password123' });
     }
-    
+
     const newUser = new User({
       name: 'Test User',
       email: 'test@example.com',
       password: 'password123',
       role: 'student'
     });
-    
+
     await newUser.save();
     res.json({ message: 'Test user created! Email: test@example.com, password: password123' });
   } catch (error) {

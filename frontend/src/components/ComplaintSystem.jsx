@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { AlertTriangle, CheckCircle, Clock, Plus, Filter } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Plus, Filter, Wrench, ShieldAlert, ChevronDown, MapPin, Hash } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function ComplaintSystem() {
   const { user, token } = useContext(AuthContext);
   const [complaints, setComplaints] = useState([]);
   const [showForm, setShowForm] = useState(false);
   
-  // Form State
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -18,7 +19,6 @@ export default function ComplaintSystem() {
   });
 
   const categories = ['Plumbing', 'Electrical', 'Cleaning', 'Wi-Fi', 'Other'];
-  const statuses = ['Pending', 'In Progress', 'Resolved'];
 
   useEffect(() => {
     fetchComplaints();
@@ -26,10 +26,8 @@ export default function ComplaintSystem() {
 
   const fetchComplaints = async () => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      const res = await axios.get('http://localhost:5000/api/complaints', config);
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(`${API_URL}/complaints`, config);
       setComplaints(res.data);
     } catch (err) {
       console.error('Error fetching complaints:', err);
@@ -43,10 +41,8 @@ export default function ComplaintSystem() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      await axios.post('http://localhost:5000/api/complaints', formData, config);
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.post(`${API_URL}/complaints`, formData, config);
       setShowForm(false);
       setFormData({ ...formData, title: '', description: '' });
       fetchComplaints();
@@ -57,127 +53,103 @@ export default function ComplaintSystem() {
 
   const updateStatus = async (complaintId, status) => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      await axios.put(`http://localhost:5000/api/complaints/${complaintId}`, { status }, config);
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.put(`${API_URL}/complaints/${complaintId}`, { status }, config);
       fetchComplaints();
     } catch (err) {
       console.error('Error updating status:', err);
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusColor = (status) => {
     switch (status) {
-      case 'Pending': return <Clock size={16} color="#ffb86c" />;
-      case 'In Progress': return <Plus size={16} color="#8be9fd" />;
-      case 'Resolved': return <CheckCircle size={16} color="#50fa7b" />;
-      default: return null;
+      case 'Pending': return { bg: '#fffbeb', text: '#92400e', border: '#fef3c7' };
+      case 'In Progress': return { bg: '#eff6ff', text: '#1e40af', border: '#dbeafe' };
+      case 'Resolved': return { bg: '#ecfdf5', text: '#065f46', border: '#d1fae5' };
+      default: return { bg: 'var(--bg-accent)', text: 'var(--text-secondary)', border: 'var(--border-subtle)' };
     }
   };
 
   return (
-    <div className="complaint-container fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ color: '#fff' }}>{user?.role === 'admin' ? 'Management Dashboard' : 'My Complaints'}</h2>
+    <div className="animate-up" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '1.25rem' }}>Service Requests</h3>
         {user?.role !== 'admin' && (
-          <button onClick={() => setShowForm(!showForm)} className="login-btn" style={{ maxWidth: '180px', margin: 0 }}>
-            <AlertTriangle size={18} style={{ marginRight: '8px' }} /> Lodge Complaint
+          <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
+            {showForm ? <Plus size={18} style={{ transform: 'rotate(45deg)' }} /> : <Plus size={18} />}
+            {showForm ? 'Cancel Request' : 'New Service Request'}
           </button>
         )}
       </div>
 
       {showForm && (
-        <div className="glass-card fade-in" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1.5rem', color: '#fff', fontSize: '1.4rem' }}>New Maintenance Request</h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '500' }}>Title</label>
-                <input 
-                  name="title" 
-                  placeholder="Short summary" 
-                  value={formData.title} 
-                  onChange={handleInputChange} 
-                  required 
-                  style={{ width: '100%', padding: '14px 16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s' }}
-                  onFocus={(e) => e.target.style.borderColor = '#6d28d9'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                />
+        <div className="card animate-up">
+          <h4 style={{ marginBottom: '1.5rem' }}>Lodge a Complaint</h4>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Issue Title</label>
+                <input type="text" name="title" className="input-field" placeholder="Brief summary" value={formData.title} onChange={handleInputChange} required />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '500' }}>Category</label>
-                <select 
-                  name="category" 
-                  value={formData.category} 
-                  onChange={handleInputChange} 
-                  style={{ width: '100%', padding: '14px 16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.95rem', outline: 'none', appearance: 'none', cursor: 'pointer', transition: 'border-color 0.3s' }}
-                  onFocus={(e) => e.target.style.borderColor = '#6d28d9'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                >
-                  {categories.map(c => <option key={c} value={c} style={{background: '#1e293b', color: 'white'}}>{c}</option>)}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Category</label>
+                <select name="category" className="input-field" value={formData.category} onChange={handleInputChange}>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-            <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '500' }}>Detailed Description</label>
-              <textarea 
-                name="description" 
-                placeholder="Explain the issue..." 
-                value={formData.description} 
-                onChange={handleInputChange} 
-                required 
-                style={{ width: '100%', padding: '14px 16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.95rem', outline: 'none', minHeight: '120px', resize: 'vertical', transition: 'border-color 0.3s', fontFamily: 'inherit' }}
-                onFocus={(e) => e.target.style.borderColor = '#6d28d9'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-              />
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Details</label>
+              <textarea name="description" className="input-field" placeholder="Provide more context..." value={formData.description} onChange={handleInputChange} required style={{ minHeight: '100px', resize: 'none' }} />
             </div>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button type="submit" className="login-btn" style={{ margin: 0, padding: '12px 24px' }}>Submit Request</button>
-              <button type="button" onClick={() => setShowForm(false)} className="login-btn" style={{ margin: 0, padding: '12px 24px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', boxShadow: 'none' }}>Cancel</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+               <button type="submit" className="btn btn-primary">Submit Request</button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="complaints-list">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {complaints.length === 0 ? (
-          <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-            No complaints found.
+          <div className="card" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+             <Wrench size={48} style={{ margin: '0 auto 1rem', opacity: 0.1 }} />
+             <p>No service requests found.</p>
           </div>
         ) : (
-          complaints.map(complaint => (
-            <div key={complaint._id} className="glass-card fade-in" style={{ marginBottom: '1rem', padding: '1.5rem', borderLeft: `4px solid ${complaint.status === 'Resolved' ? '#50fa7b' : complaint.status === 'In Progress' ? '#8be9fd' : '#ffb86c'}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>{complaint.category}</span>
-                    <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)' }}>{complaint.hostelBlock} - Room {complaint.roomNumber}</span>
+          complaints.map(complaint => {
+            const status = getStatusColor(complaint.status);
+            return (
+              <div key={complaint._id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '100px', background: 'var(--bg-accent)', color: 'var(--text-secondary)', fontWeight: '700' }}>{complaint.category.toUpperCase()}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <MapPin size={12}/> Block {complaint.hostelBlock}, Room {complaint.roomNumber}
+                    </span>
                   </div>
-                  <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>{complaint.title}</h3>
-                  <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>{complaint.description}</p>
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '4px' }}>{complaint.title}</h4>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{complaint.description}</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    {getStatusIcon(complaint.status)} {complaint.status}
-                  </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem' }}>
+                  <span style={{ 
+                    padding: '6px 12px', borderRadius: '100px', fontSize: '0.75rem', fontWeight: '800',
+                    background: status.bg, color: status.text, border: `1px solid ${status.border}`
+                  }}>
+                    {complaint.status.toUpperCase()}
+                  </span>
                   {user?.role === 'admin' && complaint.status !== 'Resolved' && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {complaint.status === 'Pending' && (
-                        <button onClick={() => updateStatus(complaint._id, 'In Progress')} style={{ fontSize: '0.8rem', background: 'rgba(139, 233, 253, 0.2)', border: '1px solid #8be9fd', color: '#8be9fd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>Start Work</button>
+                        <button onClick={() => updateStatus(complaint._id, 'In Progress')} className="btn" style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe' }}>In Progress</button>
                       )}
-                      <button onClick={() => updateStatus(complaint._id, 'Resolved')} style={{ fontSize: '0.8rem', background: 'rgba(80, 250, 123, 0.2)', border: '1px solid #50fa7b', color: '#50fa7b', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>Resolve</button>
+                      <button onClick={() => updateStatus(complaint._id, 'Resolved')} className="btn" style={{ padding: '4px 10px', fontSize: '0.75rem', background: '#ecfdf5', color: '#065f46', border: '1px solid #d1fae5' }}>Mark Resolved</button>
                     </div>
-                  )}
-                  {user?.role === 'admin' && (
-                     <div style={{marginTop: '8px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)'}}>
-                        Reported by: {complaint.user?.name}
-                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

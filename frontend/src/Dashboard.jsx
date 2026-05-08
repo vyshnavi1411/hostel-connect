@@ -1,6 +1,11 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { Home, LogOut, MessageSquare, MessageCircle, AlertCircle, User as UserIcon, Shield, Mail, MapPin, Hash, Utensils, Bell, X, CheckCheck } from 'lucide-react';
+import { 
+  LayoutDashboard, LogOut, MessageSquare, MessageCircle, AlertCircle, 
+  User as UserIcon, Shield, Mail, MapPin, Hash, Utensils, Bell, X, 
+  CheckCheck, ChevronRight, Lock, Sun, Moon, Search, Settings, HelpCircle
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import AuthContext from './context/AuthContext';
 import NotificationContext from './context/NotificationContext';
 import CommunityFeed from './components/CommunityFeed';
@@ -9,300 +14,535 @@ import ChatSystem from './components/ChatSystem';
 import MessMenu from './components/MessMenu';
 import './index.css';
 
+const ConstellationBackground = () => {
+  const canvasRef = useRef(null);
+  const mouse = useRef({ x: null, y: null });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let particles = [];
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedX = Math.random() * 0.5 - 0.25;
+        this.speedY = Math.random() * 0.5 - 0.25;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        if (this.x > canvas.width) this.x = 0;
+        else if (this.x < 0) this.x = canvas.width;
+        if (this.y > canvas.height) this.y = 0;
+        else if (this.y < 0) this.y = canvas.height;
+
+        // Mouse interaction
+        const dx = mouse.current.x - this.x;
+        const dy = mouse.current.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < 100) {
+          this.x -= dx / 50;
+          this.y -= dy / 50;
+        }
+      }
+      draw() {
+        ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(59, 130, 246, 0.4)' : 'rgba(37, 99, 235, 0.2)';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const init = () => {
+      particles = [];
+      const numberOfParticles = (canvas.width * canvas.height) / 15000;
+      for (let i = 0; i < numberOfParticles; i++) {
+        particles.push(new Particle());
+      }
+    };
+
+    const connect = () => {
+      for (let a = 0; a < particles.length; a++) {
+        for (let b = a; b < particles.length; b++) {
+          const dx = particles[a].x - particles[b].x;
+          const dy = particles[a].y - particles[b].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 150) {
+            const opacity = 1 - distance / 150;
+            ctx.strokeStyle = document.documentElement.getAttribute('data-theme') === 'dark' 
+              ? `rgba(59, 130, 246, ${opacity * 0.2})` 
+              : `rgba(37, 99, 235, ${opacity * 0.1})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      connect();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    const handleMouseMove = (e) => {
+      mouse.current.x = e.x;
+      mouse.current.y = e.y;
+    };
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      init();
+    });
+    window.addEventListener('mousemove', handleMouseMove);
+
+    resizeCanvas();
+    init();
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1, pointerEvents: 'none' }} />;
+};
+
 export default function Dashboard() {
   const { user, logout } = useContext(AuthContext);
-  const { notifications, unreadCount, markAllRead, dismissNotification, clearAll } = useContext(NotificationContext);
-  const [activeTab, setActiveTab] = useState('profile');
+  const { notifications, unreadCount, markAllRead, clearAll } = useContext(NotificationContext);
+  const [activeTab, setActiveTab] = useState('overview');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [showPwdForm, setShowPwdForm] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const notifRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const navigate = useNavigate();
 
-  // Close notification panel on outside click
+  const [pwdData, setPwdData] = useState({ currentPassword: '', newPassword: '' });
+  const [pwdMsg, setPwdMsg] = useState({ text: '', type: '' });
+  const [trendingPosts, setTrendingPosts] = useState([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [typedText, setTypedText] = useState('');
+  const [quote, setQuote] = useState('');
+
+  // Theme Management
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setShowNotifications(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const quotes = [
+    "Your home away from home. ✨",
+    "Making hostel life easier, one click at a time. 🚀",
+    "Stay connected, stay ahead. 🌟",
+    "Where every resident is a family member. 🏠",
+    "Building a smarter community together. 🤝"
+  ];
+
+  useEffect(() => {
+    if (user) {
+      const selectedQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      setQuote(selectedQuote);
+      
+      let i = 0;
+      setTypedText('');
+      const timer = setInterval(() => {
+        setTypedText(selectedQuote.substring(0, i));
+        i++;
+        if (i > selectedQuote.length) clearInterval(timer);
+      }, 40);
+      return () => clearInterval(timer);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchDashboardData();
+    }
+  }, [activeTab]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoadingDashboard(true);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/posts`);
+      setTrendingPosts(res.data.slice(0, 3));
+      setLoadingDashboard(false);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setLoadingDashboard(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const handleBellClick = () => {
-    setShowNotifications(v => !v);
-    if (!showNotifications) markAllRead();
-  };
-
-  const navItems = [
-    { id: 'profile', label: 'My Profile', icon: <UserIcon size={20} /> },
-    { id: 'mess', label: 'Mess Menu', icon: <Utensils size={20} /> },
-    { id: 'community', label: 'Community Hub', icon: <MessageSquare size={20} /> },
-    { id: 'chat', label: 'Global Chat', icon: <MessageCircle size={20} /> },
-    { id: 'complaints', label: 'Complaints', icon: <AlertCircle size={20} /> },
-  ];
-
-  const getNotifColor = (type) => type === 'complaint' ? '#ffb86c' : '#8be9fd';
-  const getNotifIcon = (type) => type === 'complaint' ? '🔧' : '💬';
-
-  const formatNotifTime = (date) => {
-    const d = new Date(date);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'profile':
-        const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
-
-        return (
-          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* Profile Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', padding: '2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'linear-gradient(90deg, #667eea, #764ba2)' }} />
-
-              <div style={{
-                width: '100px',
-                height: '100px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '2.5rem',
-                fontWeight: '700',
-                color: 'white',
-                boxShadow: '0 10px 25px rgba(118, 75, 162, 0.4)',
-                flexShrink: 0
-              }}>
-                {initials}
-              </div>
-
-              <div>
-                <h2 style={{ color: '#fff', fontSize: '2rem', marginBottom: '8px', letterSpacing: '-0.5px' }}>{user?.name}</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(102, 126, 234, 0.1)', color: '#667eea', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    <Shield size={14} /> {user?.role || 'student'}
-                  </span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Mail size={16} /> {user?.email}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Details Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-
-              {/* Account Information */}
-              <div style={{ padding: '1.5rem', background: 'rgba(0,0,0,0.15)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <h3 style={{ marginBottom: '1.5rem', color: '#fff', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UserIcon size={18} color="#764ba2" /> Account Details
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Full Name</label>
-                    <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.name}</p>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address</label>
-                    <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.email}</p>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registration Number</label>
-                    <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.registrationNumber || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hostel Information (Hidden for Admins) */}
-              {user?.role !== 'admin' && (
-                <div style={{ padding: '1.5rem', background: 'rgba(0,0,0,0.15)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <h3 style={{ marginBottom: '1.5rem', color: '#fff', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Home size={18} color="#667eea" /> Hostel Allocation
-                  </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hostel Block</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <MapPin size={18} color="rgba(255,255,255,0.5)" />
-                        <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.hostelBlock || 'Not Assigned'}</p>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Room Number</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Hash size={18} color="rgba(255,255,255,0.5)" />
-                        <p style={{ color: '#fff', fontSize: '1.05rem', fontWeight: '500' }}>{user?.roomNumber || 'Not Assigned'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
-        );
-      case 'community':
-        return <CommunityFeed />;
-      case 'mess':
-        return <MessMenu />;
-      case 'chat':
-        return null; // Handled directly in main render
-      case 'complaints':
-        return <ComplaintSystem />;
-      default:
-        return null;
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPwdMsg({ text: '', type: '' });
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/change-password`, pwdData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPwdMsg({ text: 'Password updated successfully!', type: 'success' });
+      setPwdData({ currentPassword: '', newPassword: '' });
+    } catch (err) {
+      setPwdMsg({ text: err.response?.data?.message || 'Failed to update password', type: 'error' });
     }
   };
 
-  return (
-    <div className="login-container" style={{ alignItems: 'flex-start', padding: '2rem' }}>
-      <div className="shape shape-1"></div>
-      <div className="shape shape-2"></div>
-      <div className="shape shape-3"></div>
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
+    { id: 'mess', label: 'Mess Menu', icon: <Utensils size={20} /> },
+    { id: 'community', label: 'Community Feed', icon: <MessageSquare size={20} /> },
+    { id: 'chat', label: 'Global Chat', icon: <MessageCircle size={20} /> },
+    { id: 'complaints', label: 'Service Requests', icon: <AlertCircle size={20} /> },
+  ];
 
-      <div style={{ display: 'flex', gap: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', zIndex: 10 }}>
-        {/* Navigation Sidebar */}
-        <div className="glass-card" style={{ width: '280px', padding: '1.5rem', height: 'fit-content', position: 'sticky', top: '2rem' }}>
-          <div className="card-header" style={{ marginBottom: '2rem', textAlign: 'left', alignItems: 'flex-start' }}>
-            {/* Logo + Bell Row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '1rem' }}>
-              <div className="logo-icon">
-                <Home size={28} />
-              </div>
-              {/* Notification Bell */}
-              <div ref={notifRef} style={{ position: 'relative' }}>
-                <button
-                  onClick={handleBellClick}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', transition: 'all 0.2s' }}
-                  title="Notifications"
-                >
-                  <Bell size={18} color={unreadCount > 0 ? '#ffb86c' : 'rgba(255,255,255,0.6)'} />
-                  {unreadCount > 0 && (
-                    <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ff5555', color: '#fff', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(15,23,42,0.8)' }}>
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Notification Dropdown */}
-                {showNotifications && (
-                  <div style={{ position: 'absolute', top: '110%', right: 0, width: '300px', background: 'rgba(15,23,42,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 1000, overflow: 'hidden' }}>
-                    {/* Header */}
-                    <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#fff', fontWeight: '600', fontSize: '0.95rem' }}>Notifications</span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {notifications.length > 0 && (
-                          <button onClick={clearAll} title="Clear all" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}>
-                            <CheckCheck size={16} />
-                          </button>
-                        )}
-                        <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}>
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    {/* Notification List */}
-                    <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                      {notifications.length === 0 ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>
-                          No notifications yet
-                        </div>
-                      ) : (
-                        notifications.map(n => (
-                          <div key={n.id} style={{ padding: '0.9rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '10px', alignItems: 'flex-start', background: n.read ? 'transparent' : 'rgba(255,255,255,0.03)' }}>
-                            <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{getNotifIcon(n.type)}</span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ color: '#fff', fontSize: '0.85rem', margin: 0, lineHeight: '1.4', wordBreak: 'break-word' }}>{n.message}</p>
-                              {n.remark && <p style={{ color: getNotifColor(n.type), fontSize: '0.78rem', margin: '4px 0 0', fontStyle: 'italic' }}>"{n.remark}"</p>}
-                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem' }}>{formatNotifTime(n.createdAt)}</span>
-                            </div>
-                            <button onClick={() => dismissNotification(n.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '2px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-                              <X size={13} />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+  const renderDashboard = () => {
+    return (
+      <div className="animate-up" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        {/* Welcome Section */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ minHeight: '100px' }}>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '4px' }}>
+              Hey, {user?.name.split(' ')[0]}! ✨
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: '24px' }}>
+              <p style={{ 
+                color: 'var(--brand-primary)', 
+                fontSize: '1rem', 
+                fontWeight: '500',
+                borderRight: '2px solid var(--brand-primary)',
+                paddingRight: '4px',
+                animation: 'blink 0.7s infinite'
+              }}>
+                {typedText}
+              </p>
             </div>
-            <h1 style={{ fontSize: '1.5rem' }}>Nexus</h1>
-            <p style={{ fontSize: '0.9rem' }}>Hostel Management</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '8px' }}>Here's what's happening in your hostel today.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <div className="card" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }}></div>
+              <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>Mess is Open</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+          {/* Trending Updates */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.25rem' }}>Trending in Hostel</h3>
+              <button onClick={() => setActiveTab('community')} className="btn btn-ghost" style={{ fontSize: '0.875rem', color: 'var(--brand-primary)' }}>View All</button>
+            </div>
+            
+            {loadingDashboard ? (
+              <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>Loading updates...</div>
+            ) : trendingPosts.length === 0 ? (
+              <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No recent updates.</div>
+            ) : (
+              trendingPosts.map(post => (
+                <div key={post._id} className="card" style={{ padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <UserIcon size={16} />
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>{post.user?.role === 'admin' ? post.user.name : 'Resident'}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(post.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{post.content.substring(0, 150)}{post.content.length > 150 ? '...' : ''}</p>
+                </div>
+              ))
+            )}
           </div>
 
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: activeTab === item.id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  color: activeTab === item.id ? '#fff' : 'rgba(255,255,255,0.6)',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  textAlign: 'left',
-                  width: '100%'
-                }}
-                className={activeTab === item.id ? '' : 'nav-hover'}
-              >
-                {item.icon}
-                <span style={{ fontWeight: activeTab === item.id ? '600' : '400' }}>{item.label}</span>
-              </button>
-            ))}
-          </nav>
+          {/* Quick Info / Events */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.25rem' }}>Hostel Events</h3>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { title: 'Night Canteen Closure', date: 'Today, 11:30 PM', type: 'Alert' },
+                { title: 'Hostel A Block Meeting', date: 'Tomorrow, 5:00 PM', type: 'Event' },
+                { title: 'New Menu Feedback', date: 'Due in 2 days', type: 'Task' }
+              ].map((event, i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', paddingBottom: i === 2 ? 0 : '1rem', borderBottom: i === 2 ? 'none' : '1px solid var(--border-subtle)' }}>
+                  <div style={{ 
+                    padding: '8px', borderRadius: '8px', 
+                    background: event.type === 'Alert' ? '#fef2f2' : event.type === 'Event' ? '#eff6ff' : '#f0fdf4',
+                    color: event.type === 'Alert' ? '#ef4444' : event.type === 'Event' ? '#3b82f6' : '#22c55e',
+                    height: 'fit-content'
+                  }}>
+                    {event.type === 'Alert' ? <AlertCircle size={18}/> : event.type === 'Event' ? <Bell size={18}/> : <CheckCheck size={18}/>}
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '2px' }}>{event.title}</h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{event.date}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-          <div style={{ marginTop: '4rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAccount = () => {
+    const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
+    return (
+      <div className="animate-up" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {/* Header Profile Section */}
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '2rem', padding: '2.5rem' }}>
+          <div style={{
+            width: '100px', height: '100px', borderRadius: '50%',
+            background: 'var(--brand-primary)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '2.5rem', fontWeight: '800', boxShadow: '0 10px 25px var(--brand-glow)'
+          }}>
+            {initials}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <h2 style={{ fontSize: '2rem' }}>{user?.name}</h2>
+              <span className="badge badge-blue">{user?.role}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16}/> {user?.email}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={16}/> Block {user?.hostelBlock || 'N/A'}, Room {user?.roomNumber || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+          <div className="card">
+            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Personal Information</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+              {[
+                { label: 'Full Name', value: user?.name },
+                { label: 'Primary Email', value: user?.email },
+                { label: 'Hostel Block', value: user?.hostelBlock || 'Unassigned' },
+                { label: 'Room Number', value: user?.roomNumber || 'Unassigned' }
+              ].map((item, idx) => (
+                <div key={idx}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '4px' }}>{item.label.toUpperCase()}</p>
+                  <p style={{ fontWeight: '500' }}>{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem' }}>Security Settings</h3>
+              {!showPwdForm && <button onClick={() => setShowPwdForm(true)} className="btn btn-ghost" style={{ fontSize: '0.875rem', color: 'var(--brand-primary)' }}>Change Password</button>}
+            </div>
+            
+            {showPwdForm ? (
+              <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Current Password</label>
+                  <input 
+                    type="password" className="input-field" placeholder="••••••••" 
+                    value={pwdData.currentPassword} onChange={(e) => setPwdData({...pwdData, currentPassword: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>New Password</label>
+                  <input 
+                    type="password" className="input-field" placeholder="••••••••" 
+                    value={pwdData.newPassword} onChange={(e) => setPwdData({...pwdData, newPassword: e.target.value})}
+                  />
+                </div>
+                {pwdMsg.text && <p style={{ fontSize: '0.85rem', color: pwdMsg.type === 'error' ? 'var(--danger)' : 'var(--success)' }}>{pwdMsg.text}</p>}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Update Password</button>
+                  <button type="button" onClick={() => { setShowPwdForm(false); setPwdMsg({text: '', type: ''}); }} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--text-secondary)' }}>
+                <Lock size={32} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                <p style={{ fontSize: '0.9rem' }}>Secure your account by regularly updating your password.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="app-container" style={{ position: 'relative' }}>
+      <ConstellationBackground />
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', background: 'var(--brand-primary)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <Shield size={24} />
+          </div>
+          <h1 style={{ fontSize: '1.25rem', letterSpacing: '-0.05em' }}>HostelConnect</h1>
+        </div>
+
+        <nav style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          {navItems.map(item => (
             <button
-              onClick={handleLogout}
-              className="login-btn"
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className="btn btn-ghost"
               style={{
-                background: 'rgba(255, 50, 50, 0.1)',
-                color: '#ff8a8a',
-                border: '1px solid rgba(255, 50, 50, 0.2)',
-                padding: '10px'
+                justifyContent: 'flex-start', padding: '0.75rem 1rem', borderRadius: '12px',
+                background: activeTab === item.id ? 'var(--brand-glow)' : 'transparent',
+                color: activeTab === item.id ? 'var(--brand-primary)' : 'var(--text-secondary)'
               }}
             >
-              <LogOut size={18} style={{marginRight: '8px'}} /> Logout
+              {item.icon}
+              <span>{item.label}</span>
+              {activeTab === item.id && <div style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--brand-primary)' }} />}
             </button>
-          </div>
-        </div>
+          ))}
+        </nav>
 
-        {/* Main Content Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          {activeTab === 'chat' ? (
-            <div className="fade-in" style={{ flex: 1, display: 'flex', width: '100%', minHeight: '85vh', background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-subtle)' }}>
+          <button onClick={handleLogout} className="btn btn-ghost" style={{ width: '100%', color: 'var(--danger)', gap: '12px' }}>
+            <LogOut size={18} /> Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="main-wrapper">
+        <header className="top-nav">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button onClick={toggleTheme} className="theme-toggle">
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+            <div ref={notifRef} style={{ position: 'relative' }}>
+              <button onClick={() => setShowNotifications(!showNotifications)} className="theme-toggle" style={{ position: 'relative' }}>
+                <Bell size={20} />
+                {unreadCount > 0 && <span style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', background: 'var(--danger)', borderRadius: '50%', border: '2px solid var(--bg-secondary)' }} />}
+              </button>
+              {showNotifications && (
+                <div className="card animate-up" style={{ position: 'absolute', top: '120%', right: 0, width: '320px', padding: '0', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: '700' }}>Notifications</span>
+                    <button onClick={clearAll} style={{ background: 'none', border: 'none', color: 'var(--brand-primary)', fontSize: '0.8rem', cursor: 'pointer' }}>Clear all</button>
+                  </div>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No notifications</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-subtle)', background: n.read ? 'transparent' : 'var(--brand-glow)' }}>
+                          <p style={{ fontSize: '0.85rem' }}>{n.message}</p>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(n.createdAt).toLocaleTimeString()}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div ref={profileMenuRef} style={{ position: 'relative' }}>
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="theme-toggle"
+                style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--bg-accent)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <UserIcon size={20} />
+              </button>
+
+              {showProfileMenu && (
+                <div className="card animate-up" style={{ position: 'absolute', top: '120%', right: 0, width: '220px', padding: '0.5rem', zIndex: 1000, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                  <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)', marginBottom: '0.5rem' }}>
+                    <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>{user?.name}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user?.email}</p>
+                  </div>
+                  <button 
+                    onClick={() => { setActiveTab('account'); setShowProfileMenu(false); }}
+                    className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '0.6rem 1rem', fontSize: '0.875rem' }}
+                  >
+                    <LayoutDashboard size={16} /> My Profile
+                  </button>
+                  <button 
+                    onClick={() => { setActiveTab('account'); setShowPwdForm(true); setShowProfileMenu(false); }}
+                    className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '0.6rem 1rem', fontSize: '0.875rem' }}
+                  >
+                    <Lock size={16} /> Security Settings
+                  </button>
+                  <div style={{ margin: '0.5rem 0', borderTop: '1px solid var(--border-subtle)' }} />
+                  <button 
+                    onClick={handleLogout}
+                    className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '0.6rem 1rem', fontSize: '0.875rem', color: 'var(--danger)' }}
+                  >
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="content-area">
+          <div style={{ marginBottom: '2.5rem' }}>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{navItems.find(i => i.id === activeTab)?.label}</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
+              {activeTab === 'overview' ? 'Welcome to your professional hostel management dashboard.' : `Manage your ${navItems.find(i => i.id === activeTab)?.label.toLowerCase()}.`}
+            </p>
+          </div>
+
+          {activeTab === 'overview' && renderDashboard()}
+          {activeTab === 'account' && renderAccount()}
+          {activeTab === 'mess' && <MessMenu />}
+          {activeTab === 'community' && <CommunityFeed />}
+          {activeTab === 'chat' && (
+            <div className="card" style={{ height: 'calc(100vh - 350px)', padding: '0', overflow: 'hidden' }}>
               <ChatSystem />
             </div>
-          ) : (
-            <div className="glass-card fade-in" style={{ padding: '2rem', minHeight: '85vh', display: 'flex', flexDirection: 'column', maxWidth: 'none' }}>
-              <div style={{ marginBottom: '2rem', flexShrink: 0 }}>
-                <h2 style={{ color: '#fff', fontSize: '1.8rem' }}>
-                  {navItems.find(i => i.id === activeTab)?.label}
-                </h2>
-                <p style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  {activeTab === 'profile' ? `Welcome back, ${user?.name}!` :
-                   activeTab === 'mess' ? 'View the weekly schedule for hostel meals.' :
-                   activeTab === 'community' ? 'Connect anonymously with your fellow residents.' :
-                   'Lodge and track maintenance requests.'}
-                </p>
-              </div>
-              {renderContent()}
-            </div>
           )}
-        </div>
+          {activeTab === 'complaints' && <ComplaintSystem />}
+        </main>
       </div>
     </div>
   );

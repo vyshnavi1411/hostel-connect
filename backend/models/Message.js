@@ -9,6 +9,10 @@ const messageSchema = new mongoose.Schema({
   text: {
     type: String,
     required: true
+  },
+  isAnonymous: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

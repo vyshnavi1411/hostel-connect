@@ -69,12 +69,19 @@ io.on('connection', (socket) => {
       const newMessage = new Message({
         user: data.userId,
         text: data.text,
+        isAnonymous: data.isAnonymous || false,
         room: data.room || 'Global',
         recipient: data.recipient || null
       });
       await newMessage.save();
 
-      const populatedMessage = await Message.findById(newMessage._id).populate('user', 'name role');
+      let populatedMessage = await Message.findById(newMessage._id).populate('user', 'name role');
+      
+      // Convert to object to modify if anonymous
+      const messageObj = populatedMessage.toObject();
+      if (messageObj.isAnonymous) {
+        messageObj.user = { name: 'Anonymous Resident', role: 'student' };
+      }
 
       if (data.recipient) {
         // Direct Message — find recipient & sender sockets, emit to both
@@ -86,20 +93,20 @@ io.on('connection', (socket) => {
           if (user.id === data.userId) senderSocketIds.push(id);
         }
 
-        recipientSocketIds.forEach(id => io.to(id).emit('receiveMessage', populatedMessage));
-        senderSocketIds.forEach(id => io.to(id).emit('receiveMessage', populatedMessage));
+        recipientSocketIds.forEach(id => io.to(id).emit('receiveMessage', messageObj));
+        senderSocketIds.forEach(id => io.to(id).emit('receiveMessage', messageObj));
 
-        // Emit DM notification to recipient (for the notification bell)
+        // Emit DM notification to recipient
         const senderUser = activeUsers.get(socket.id);
         recipientSocketIds.forEach(id => io.to(id).emit('newDirectMessage', {
           recipientId: data.recipient,
           senderId: data.userId,
-          senderName: senderUser ? senderUser.name : 'Someone'
+          senderName: messageObj.isAnonymous ? 'Anonymous' : (senderUser ? senderUser.name : 'Someone')
         }));
       } else if (data.room) {
-        io.to(data.room).emit('receiveMessage', populatedMessage);
+        io.to(data.room).emit('receiveMessage', messageObj);
       } else {
-        io.emit('receiveMessage', populatedMessage);
+        io.emit('receiveMessage', messageObj);
       }
     } catch (err) {
       console.error('Error saving message:', err);
