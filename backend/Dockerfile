@@ -1,5 +1,5 @@
-# Use Node.js 20 alpine for a small image size
-FROM node:20-alpine
+# Use Node.js 20 slim to avoid Alpine DNS resolution issues with MongoDB SRV records
+FROM node:20-slim
 
 # Set the working directory
 WORKDIR /app

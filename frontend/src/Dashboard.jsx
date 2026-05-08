@@ -236,7 +236,7 @@ export default function Dashboard() {
               <span className="badge badge-blue">{user?.role}</span>
             </div>
             <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={16}/> {user?.email}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Hash size={16}/> {user?.registrationNumber}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={16}/> Block {user?.hostelBlock || 'N/A'}, Room {user?.roomNumber || 'N/A'}</span>
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
               {[
                 { label: 'Full Name', value: user?.name },
-                { label: 'Primary Email', value: user?.email },
+                { label: 'Registration No.', value: user?.registrationNumber },
                 { label: 'Hostel Block', value: user?.hostelBlock || 'Unassigned' },
                 { label: 'Room Number', value: user?.roomNumber || 'Unassigned' }
               ].map((item, idx) => (
@@ -384,7 +384,7 @@ export default function Dashboard() {
                 <div className="card animate-up" style={{ position: 'absolute', top: '120%', right: 0, width: '220px', padding: '0.5rem', zIndex: 1000, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
                   <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)', marginBottom: '0.5rem' }}>
                     <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>{user?.name}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user?.email}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user?.registrationNumber}</p>
                   </div>
                   <button 
                     onClick={() => { setActiveTab('account'); setShowProfileMenu(false); }}

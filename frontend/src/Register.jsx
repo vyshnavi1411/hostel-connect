@@ -7,7 +7,7 @@ import './index.css';
 export default function Register() {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    registrationNumber: '',
     password: '',
     role: 'student',
     hostelBlock: 'A',
@@ -70,10 +70,10 @@ export default function Register() {
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Email Address</label>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Registration Number</label>
               <div style={{ position: 'relative' }}>
-                <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
-                <input type="email" name="email" className="input-field" placeholder="john@email.com" value={formData.email} onChange={handleInputChange} required style={{ paddingLeft: '40px' }} />
+                <UserIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
+                <input type="text" name="registrationNumber" className="input-field" placeholder="12345678" pattern="\d{8}" maxLength="8" value={formData.registrationNumber} onChange={handleInputChange} required style={{ paddingLeft: '40px' }} />
               </div>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function Register() {
               <div style={{ position: 'relative' }}>
                 <Building style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                 <select name="hostelBlock" className="input-field" value={formData.hostelBlock} onChange={handleInputChange} style={{ paddingLeft: '40px', appearance: 'none' }}>
-                  {['A', 'B', 'C', 'D'].map(b => <option key={b} value={b}>Block {b}</option>)}
+                  {['A', 'B'].map(b => <option key={b} value={b}>Block {b}</option>)}
                 </select>
               </div>
             </div>

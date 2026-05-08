@@ -7,10 +7,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  email: {
+  registrationNumber: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    match: [/^\d{8}$/, 'Registration number must be exactly 8 digits']
   },
   password: {
     type: String,

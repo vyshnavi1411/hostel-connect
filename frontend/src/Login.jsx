@@ -6,7 +6,7 @@ import ConstellationBackground from './components/ConstellationBackground';
 import './index.css';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    const result = await login(email, password);
+    const result = await login(registrationNumber, password);
     setIsLoading(false);
     if (result.success) navigate('/');
     else setError(result.message);
@@ -56,12 +56,12 @@ export default function Login() {
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Email Address</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Registration Number</label>
             <div style={{ position: 'relative' }}>
-              <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
+              <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
               <input 
-                type="email" className="input-field" placeholder="name@email.com" 
-                value={email} onChange={(e) => setEmail(e.target.value)} required 
+                type="text" className="input-field" placeholder="12345678" pattern="\d{8}" maxLength="8"
+                value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} required 
                 style={{ paddingLeft: '40px' }}
               />
             </div>

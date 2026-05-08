@@ -7,20 +7,20 @@ const jwt = require('jsonwebtoken');
 // Initial seeder route to easily setup a test user
 router.post('/seed', async (req, res) => {
   try {
-    const existingUser = await User.findOne({ email: 'test@example.com' });
+    const existingUser = await User.findOne({ registrationNumber: '12345678' });
     if (existingUser) {
-      return res.json({ message: 'Test user already exists. Email: test@example.com, password: password123' });
+      return res.json({ message: 'Test user already exists. Registration Number: 12345678, password: password123' });
     }
 
     const newUser = new User({
       name: 'Test User',
-      email: 'test@example.com',
+      registrationNumber: '12345678',
       password: 'password123',
       role: 'student'
     });
 
     await newUser.save();
-    res.json({ message: 'Test user created! Email: test@example.com, password: password123' });
+    res.json({ message: 'Test user created! Registration Number: 12345678, password: password123' });
   } catch (error) {
     console.error(error);
     res.status(500).send('Server Error');
@@ -30,22 +30,26 @@ router.post('/seed', async (req, res) => {
 // @route   POST api/auth/register
 // @desc    Register user
 router.post('/register', async (req, res) => {
-  console.log('Registration attempt received:', req.body.email);
-  const { name, email, password, role, hostelBlock, roomNumber } = req.body;
+  console.log('Registration attempt received:', req.body.registrationNumber);
+  const { name, registrationNumber, password, role, hostelBlock, roomNumber } = req.body;
 
   try {
-    if (!name || !email || !password) {
+    if (!name || !registrationNumber || !password) {
       return res.status(400).json({ message: 'Please enter all required fields' });
     }
 
-    const userExists = await User.findOne({ email });
+    if (!/^\d{8}$/.test(registrationNumber)) {
+      return res.status(400).json({ message: 'Registration number must be exactly 8 digits' });
+    }
+
+    const userExists = await User.findOne({ registrationNumber });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     const user = await User.create({
       name,
-      email,
+      registrationNumber,
       password,
       role,
       hostelBlock,
@@ -70,7 +74,7 @@ router.post('/register', async (req, res) => {
             user: {
               id: user.id,
               name: user.name,
-              email: user.email,
+              registrationNumber: user.registrationNumber,
               role: user.role,
               hostelBlock: user.hostelBlock,
               roomNumber: user.roomNumber
@@ -91,15 +95,15 @@ router.post('/register', async (req, res) => {
 // @route   POST api/auth/login
 // @desc    Authenticate user & get token
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { registrationNumber, password } = req.body;
 
   try {
-    if (!email || !password) {
+    if (!registrationNumber || !password) {
       return res.status(400).json({ message: 'Please enter all fields' });
     }
 
     // Check for existing user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ registrationNumber });
     if (!user) {
       return res.status(400).json({ message: 'User Does not exist' });
     }
@@ -127,7 +131,7 @@ router.post('/login', async (req, res) => {
           user: {
             id: user.id,
             name: user.name,
-            email: user.email,
+            registrationNumber: user.registrationNumber,
             role: user.role,
             hostelBlock: user.hostelBlock,
             roomNumber: user.roomNumber

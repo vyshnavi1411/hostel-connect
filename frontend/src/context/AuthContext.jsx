@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (registrationNumber, password) => {
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/login`, {
-        email,
+        registrationNumber,
         password
       });
 
