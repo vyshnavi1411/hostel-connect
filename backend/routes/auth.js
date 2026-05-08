@@ -30,6 +30,7 @@ router.post('/seed', async (req, res) => {
 // @route   POST api/auth/register
 // @desc    Register user
 router.post('/register', async (req, res) => {
+  console.log('Registration attempt received:', req.body.email);
   const { name, email, password, role, hostelBlock, roomNumber } = req.body;
 
   try {
@@ -78,10 +79,11 @@ router.post('/register', async (req, res) => {
         }
       );
     } else {
+      console.log('Registration failed: Invalid user data');
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
-    console.error(error.message);
+    console.error('Registration Error:', error.message);
     res.status(500).send('Server Error');
   }
 });
